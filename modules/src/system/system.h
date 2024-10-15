@@ -69,6 +69,44 @@ time_t sys_modtime(char *);
 /* return value for sys_break */
 #define ILL_BREAK	((char *)0)
 
+/* Hack for MINGW/Non-UNIX systems */
+#ifndef S_IRUSR
+#define S_IRUSR 0
+#endif
+#ifndef S_IWUSR
+#define S_IWUSR 0
+#endif
+#ifndef S_IXUSR
+#define S_IXUSR 0
+#endif
+#ifndef S_IRGRP
+#define S_IRGRP 0
+#endif
+#ifndef S_IWGRP
+#define S_IWGRP 0
+#endif
+#ifndef S_IXGRP
+#define S_IXGRP 0
+#endif
+#ifndef S_IROTH
+#define S_IROTH 0
+#endif
+#ifndef S_IWOTH
+#define S_IWOTH 0
+#endif
+#ifndef S_IXOTH
+#define S_IXOTH 0
+#endif
+
+#ifndef S_IRWXU
+#define S_IRWXU (S_IRUSR | S_IWUSR | S_IXUSR)
+#endif
+#ifndef S_IRWXG
+#define S_IRWXG (S_IRGRP | S_IWGRP | S_IXGRP)
+#endif
+#ifndef S_IRWXO
+#define S_IRWXO (S_IROTH | S_IWOTH | S_IXOTH)
+#endif
 
 /* Extract the base name from a full path specification
  * in "str" and returns it in "dst".
