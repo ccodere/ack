@@ -170,7 +170,7 @@ int main(int argc, register string argv[])
 		nc_rec_file = libpath ("nc_rec");
 	}
 #endif
-	if ((fact = fopen(f_temp, "w")) == NULL)
+	if ((fact = fopen(f_temp, "wb")) == NULL)
 	{
 		fputs("Cannot create temporary\n", stderr);
 		exit(1);
@@ -245,7 +245,7 @@ STATIC void readgrammar(int argc, char *argv[])
 	{
 		while (argc--)
 		{
-			if ((finput = fopen(f_input = argv[1], "r")) == NULL)
+			if ((finput = fopen(f_input = argv[1], "rb")) == NULL)
 			{
 				fatal(0, e_noopen, f_input);
 			}
@@ -343,7 +343,7 @@ void copyfile(string file)
 	register int c;
 	register FILE *f;
 
-	if ((f = fopen(file, "r")) == NULL)
+	if ((f = fopen(file, "rb")) == NULL)
 	{
 		fatal(0, "Cannot open library file %s, call an expert", file);
 	}
@@ -398,14 +398,14 @@ void install(string target, string source)
 	/*
 	 * First open temporary, generated for source
 	 */
-	if ((f1 = fopen(f_pars, "r")) == NULL)
+	if ((f1 = fopen(f_pars, "rb")) == NULL)
 	{
 		fatal(0, e_noopen, f_pars);
 	}
 	/*
 	 * Now open target for reading
 	 */
-	if ((f2 = fopen(realtarget, "r")) == NULL)
+	if ((f2 = fopen(realtarget, "rb")) == NULL)
 	{
 		fclose(f1);
 		copyto(realtarget, f_pars);

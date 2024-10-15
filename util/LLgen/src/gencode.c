@@ -126,7 +126,7 @@ void gencode(int argc)
 	register p_file p = files;
 
 	/* Set up for code generation */
-	if ((fact = fopen(f_temp, "r")) == NULL )
+	if ((fact = fopen(f_temp, "rb")) == NULL )
 	{
 		fatal(0, e_noopen, f_temp);
 	}
@@ -165,7 +165,7 @@ void gencode(int argc)
 STATIC void opentemp(string str)
 {
 
-	if ((fpars = fopen(f_pars, "w")) == NULL )
+	if ((fpars = fopen(f_pars, "wb")) == NULL )
 	{
 		fatal(0, e_noopen, f_pars);
 	}

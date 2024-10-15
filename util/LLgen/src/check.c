@@ -68,7 +68,7 @@ void conflchecks(void)
 	}
 	if (verbose)
 	{
-		if ((fout = fopen(f_out, "w")) == NULL)
+		if ((fout = fopen(f_out, "wb")) == NULL)
 			fatal(1, e_noopen, f_out);
 	}
 	/*
