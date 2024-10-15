@@ -1,6 +1,6 @@
 .TH AFCC 1
 .SH NAME
-afcc \- fast ACK compatible C compiler
+afcc \- ACK compatible ANSI C compiler
 .SH SYNOPSIS
 .B afcc
 [
@@ -10,18 +10,15 @@ afcc \- fast ACK compatible C compiler
 .B \-v
 ]
 [
-.B \-ansi
-]
-[
-.B \-R
-]
-[
 .B \-vn
 ]
 [ \fB\-D\fIname\fR ]
 [ \fB\-D\fIname\fB=\fIdef\fR ]
 [
 .BI \-I pathname
+]
+[
+.BI \-L pathname
 ]
 [
 .B \-w
@@ -37,24 +34,27 @@ afcc \- fast ACK compatible C compiler
 .BI \-U name
 ]
 [
+.BI \-O
+]
+[
 .BI -M compiler
 ]
 .I sourcefile ...
 .SH DESCRIPTION
 .LP
-.I Afcc
-is a fast
+.I afcc
+is a 
 .B C
-compiler. It translates 
+compiler for pre-defined target machines compatible with ISO C90. It translates 
 .B C
 programs
-into ack(1)-compatible relocatable object modules, and does so in one pass.
+into ack(1)-compatible relocatable object modules.
 Then, if the \fB\-c\fP flag is not given,
 .I afcc
 offers the object modules to a link-editor,
 to create an executable binary.
 .LP
-.I Afcc
+.I afcc
 accepts several types of filename arguments.  Files with 
 names ending in
 .B .c
@@ -81,16 +81,13 @@ an output file named
 You can specify a name for the executable by using the
 .B \-o 
 option.
+.LP
+.I afcc
+calls different external tools to do its processing. The paths to search
+for these tools is either done through \fIACK_HOME\fP environment variable
+or if not present by the path pointed to by \fI"em_path.h"\fP defined at compile time.
 .SH OPTIONS
 .LP
-.IP \fB\-ansi\fP
-Use the ANSI C compiler instead of the K&R one. This flag must be first,
-and must also be used when linking through 
-.I afcc
-or
-.I ack.
-.IP \fB\-R\fP
-test for more compatibility with Kernighan & Ritchie C [1].
 .IP \fB\-c\fP
 .br
 Suppress the loading phase of the compilation, and force an object module to
@@ -122,6 +119,14 @@ then in directories in
 options, then in the ACK include directory,
 and finally, in
 .I /usr/include.
+.IP \fB\-L\fIpathname\fR
+.br
+Add
+.I pathname
+to the list of directories in which to search for
+libraries when doing link-editing. These directories
+will be searched before the usual places and in
+the same order as declared.
 .IP "\fB\-o \fIoutput\fR"
 Name the final output file
 .I output.
@@ -138,6 +143,9 @@ Verbose. Print the commands as they are executed.
 .IP \fB\-vn\fP
 .br
 Verbose, no execute. Only print the commands, do not execute them.
+.IP \fB\-O\fp
+.br
+Run the generated code through the peephole optimizer
 .IP \fB\-w\fP
 suppress warning messages.
 .IP \fB\-M\fIcompiler\fR
@@ -147,6 +155,11 @@ use \fIcompiler\fR as C compiler instead of the default.
 Object modules produced by ack(1) and
 .I afcc
 can be freely mixed.
+.SH "ENVIRONMENT VARIABLES"
+.IP ACK_HOME
+This environment variable sets the home
+directory of the ACK installation. This is used to find different utilities called by this
+front end if not installed in the original installation directory.
 .SH "SEE ALSO"
 .IP [1]
 B.W. Kernighan, D. Ritchie, "\fIThe C programming Language\fP", Prentice-Hall Inc., 1978

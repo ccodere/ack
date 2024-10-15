@@ -1,6 +1,6 @@
 .TH FM2 1
 .SH NAME
-afm2 \- fast ACK compatible Modula-2 compiler
+afm2 \- ACK compatible Modula-2 compiler
 .SH SYNOPSIS
 .B afm2
 [
@@ -16,6 +16,9 @@ afm2 \- fast ACK compatible Modula-2 compiler
 [ \fB\-D\fIname\fB=\fIdef\fR ]
 [
 .BI \-I pathname
+]
+[
+.BI \-L pathname
 ]
 [
 .BI \-w classes
@@ -49,24 +52,27 @@ afm2 \- fast ACK compatible Modula-2 compiler
 .BI \-U name
 ]
 [
+.BI \-O
+]
+[
 .BI -M compiler
 ]
 .I sourcefile ...
 .SH DESCRIPTION
 .LP
 .I afm2
-is a fast
+is a 
 .B Modula-2
-compiler. It translates 
+compiler for pre-defined target machines. It translates 
 .B Modula-2
 programs
-into ack(1)-compatible relocatable object modules, and does so in one pass.
+into ack(1)-compatible relocatable object modules.
 Then, if the \fB\-c\fP flag is not given,
 .I afm2
 offers the object modules to a link-editor,
 to create an executable binary.
 .LP
-.I Afm2
+.I afm2
 accepts several types of filename arguments.  Files with 
 names ending in
 .B .mod
@@ -109,6 +115,11 @@ an output file named
 You can specify a name for the executable by using the
 .B \-o 
 option.
+.LP
+.I afm2
+calls different external tools to do its processing. The paths to search
+for these tools is either done through \fIACK_HOME\fP environment variable
+or if not present by the path pointed to by \fI"em_path.h"\fP defined at compile time.
 .SH OPTIONS
 .LP
 .IP \fB\-c\fP
@@ -149,6 +160,14 @@ directories given to it by the \fB\-I\fP flag, and then in a default directory,
 .I afm2
 This default directory contains all definition modules of
 the runtime system.
+.IP \fB\-L\fIpathname\fR
+.br
+Add
+.I pathname
+to the list of directories in which to search for
+libraries when doing link-editing. These directories
+will be searched before the usual places and in
+the same order as declared.
 .IP "\fB\-o \fIoutput\fR"
 Name the final output file
 .I output.
@@ -162,6 +181,9 @@ Verbose. Print the commands as they are executed.
 .IP \fB\-vn\fP
 .br
 Verbose, no execute. Only print the commands, do not execute them.
+.IP \fB\-O\fp
+.br
+Run the generated code through the peephole optimizer
 .IP \fB\-L\fR
 do not generate code to keep track of
 the current location in the source code.
@@ -196,6 +218,11 @@ with an underscore, even if this flag is given.
 .IP \fB\-M\fIcompiler\fR
 .br
 use \fIcompiler\fR as Modula-2 compiler instead of the default.
+.SH "ENVIRONMENT VARIABLES"
+.IP ACK_HOME
+This environment variable sets the home
+directory of the ACK installation. This is used to find different utilities called by this
+front end if not installed in the original installation directory.
 .SH "SEE ALSO"
 .IP [1]
 N. Wirth, \fIProgramming in Modula-2\fP, 3rd edition, Springer Verlag.

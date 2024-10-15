@@ -1,4 +1,4 @@
-/*	fcc/fm2/fpc 
+/*	fcc/fm2/fpc
  Driver for fast ACK compilers.
 
  Derived from the C compiler driver from Minix.
@@ -37,6 +37,15 @@ Something wrong here! Only one of FM2, FPC, or FCC must be defined
 We do not support machines with non 8-bit characters.
 #endif
 
+#ifndef TRUE
+#define TRUE 1
+#endif
+
+#ifndef FALSE
+#define FALSE 0
+#endif
+
+
 /* Create em based compiler if otherwise not specified.
  * Size of EM machine depends on current machine. */
 #ifndef MACHNAME
@@ -60,19 +69,22 @@ typedef char USTRING[USTR_SIZE];
 struct arglist
 {
 	int al_argc;
-	char *al_argv[MAXARGC];
+	char* al_argv[MAXARGC];
 };
 
-#define CPP_NAME	"$H/lib/ack/em_cpp"
+#define CPP_NAME	"$H/lib/ack/cpp.ansi"
 #define LD_NAME		"$H/lib/ack/em_ass"
 #define CV_NAME		"$H/lib/ack/$S/cv"
+#define OPT_NAME	"$H/lib/ack/em_opt"
 
 static char *CPP;
 static char *COMP;
 static char *LD;
+static char *AS;
+static char *OPT;
+
 static char *cc = "cc";
 
-static int kids = -1;
 static int ecount = 0;
 
 
@@ -87,10 +99,14 @@ struct size_info
 /** Contains information on the different systems supported. */
 struct system_information
 {
+	/** triplet machine-model-os/eabi */
+	char* triplet;
 	/** Architecture / machine name */
 	char* arch;
 	/** Platform name */
 	char* platform;
+	/** Assembler path and name */
+	char *assembler;
 	/** Linker path and name */
 	char *linker;
 	/** Runtime startup file */
@@ -103,11 +119,23 @@ struct system_information
 	struct arglist compiler_flags;
 };
 
-const struct system_information machine_info[2] =
+
+/** Information on outputfile */
+struct output_info
+{
+   /* The name of the output file */
+   char* name;
+   /** TRUE if it should be deleted */
+   int remove;
+};
+
+const struct system_information machine_info[3] =
 {
 		{
+		  "em22-unknown-unix7"   /* triplet */,
 		  "em22"   				/* arch */,
 		  "em22"   				/* platform */,
+		  "$H/lib/ack/em_encode", /* assembler */
 		  "$H/lib/ack/em_ass"   /* linker */,
 #ifdef FCC
 		  "c-ansi.m"           /* startup file */,
@@ -161,8 +189,10 @@ const struct system_information machine_info[2] =
 #endif
 		},
 		{
+		  "em24-unknown-unix7"   /* triplet */,
 		  "em24"   				/* arch */,
 		  "em24"   				/* platform */,
+		  "$H/lib/ack/em_encode", /* assembler */
 		  "$H/lib/ack/em_ass"   /* linker */,
 #ifdef FCC
 		  "c-ansi.m"           /* startup file */,
@@ -210,6 +240,63 @@ const struct system_information machine_info[2] =
 		/* modula-2 Flags */
 		{1, {
 		   "-Vw2.2i2.2l4.2p4.2f8.2S2.2"
+		}}
+#endif
+#endif
+#endif
+		},
+		{
+		  "em44-unknown-unix7"   /* triplet */,
+		  "em44"   				/* arch */,
+		  "em44"   				/* platform */,
+		  "$H/lib/ack/em_encode", /* assembler */
+		  "$H/lib/ack/em_ass"   /* linker */,
+#ifdef FCC
+		  "c-ansi.m"           /* startup file */,
+#else
+#ifdef FPC
+		  "pascal.m"           /* startup file */,
+#ifdef FM2
+		  "modula2.m"           /* startup file */,
+#endif
+#endif
+#endif
+		  NULL					/* converter */,
+		  /** CPP Flags */
+		  {17,{
+		   "-DEM_WSIZE=4",
+		   "-DEM_PSIZE=4",
+		   "-DEM_SSIZE=2",
+		   "-DEM_LSIZE=4",
+		   "-DEM_FSIZE=4",
+		   "-DEM_DSIZE=8",
+		   "-DEM_XSIZE=8",
+		   "-D_EM_WSIZE=4",
+		   "-D_EM_PSIZE=4",
+		   "-D_EM_SSIZE=2",
+		   "-D_EM_LSIZE=4",
+		   "-D_EM_FSIZE=4",
+		   "-D_EM_DSIZE=8",
+		   "-D_EM_XSIZE=8",
+		   "-Dem44",
+		   "-D__em44",
+		   "-D__unix"}},
+		/* compiler flags */
+#ifdef FCC
+		{1, {
+           "-Vw4.4i4.4p4.4f4.4s2.2l4.4d8.8x8.8"
+		}}
+#else
+#ifdef FPC
+		/* pc Flags */
+		{1, {
+		   "-Vw4.4i4.4l4.4p4.4f8.8S2.2"
+		}}
+#else
+#ifdef FM2
+		/* modula-2 Flags */
+		{1, {
+		   "-Vw4.4i4.4l4.4p4.4f8.8S2.2"
 		}}
 #endif
 #endif
@@ -295,6 +382,7 @@ static int ansi_c = 1;
 static int cv_flag = 0;
 
 char *mkstr(char *, ...);
+char *arg2str(struct arglist *vec);
 static char *alloc(unsigned int);
 static char *extension(char *);
 static char *expand_string(char *s, struct system_information *);
@@ -309,7 +397,7 @@ static int needsprep(char *);
 
 static USTRING ofile;
 static USTRING BASE;
-static char tmp_file[L_tmpnam];
+static char* tmp_file;
 
 int noexec = 0;
 
@@ -330,18 +418,21 @@ void trapcc(int sig)
 
 #ifdef FCC
 #define lang_suffix()	"c"
-#define comp_name()	"$H/lib/ack/em_cemcom.ansi"
+#define comp_name()	    "$H/lib/ack/em_cemcom.ansi"
 #define ansi_c_name()	"$H/lib/ack/em_cemcom.ansi"
+#define INC_DIR_1		"-I$H/share/ack/include/ansi"
 #endif /* FCC */
 
 #ifdef FM2
 #define lang_suffix()	"mod"
-#define comp_name()	"$H/lib/ack/em_m2"
+#define comp_name()	    "$H/lib/ack/em_m2"
+#define INC_DIR_1		"-I$H/share/ack/include/modula2"
 #endif /* FM2 */
 
 #ifdef FPC
 #define lang_suffix()	"p"
 #define comp_name()	"$H/lib/ack/em_pc"
+#define INC_DIR_1	"-I$H/share/ack/include/pascal"
 #endif /* FPC */
 
 /** Default library directories to search in. */
@@ -349,19 +440,15 @@ void trapcc(int sig)
 #define LIB_DIR_1		"$H/share/ack/$S"
 #define LIB_DIR_2		"$H/lib/ack/plat/$S"
 
+#ifdef FCC
+#endif
+
 
 #ifdef FCC
 int lang_opt(char *str)
 {
 	switch (str[1])
 	{
-	case 'R':
-		if (!ansi_c)
-		{
-			append(&COMP_FLAGS, str);
-			return 1;
-		}
-		break;
 	case '-': /* debug options */
 		append(&COMP_FLAGS, str);
 		return 1;
@@ -454,6 +541,23 @@ int lang_opt(char *str)
 }
 #endif /* FPC */
 
+
+/** Concatenates s2 to s1 into a newly allocated
+ *  string buffer.
+ */
+char* stringcat(const char *s1, const char *s2)
+{
+	int s2length;
+	int s1length;
+	char* result;
+	s2length = strlen(s2);
+	s1length = strlen(s1);
+	result = alloc(s2length+s1length+1);
+	strcpy(result,s1);
+	strcat(result,s2);
+	return result;
+}
+
 char* stringdup(const char* s)
 {
 	char *p;
@@ -529,7 +633,120 @@ char* search_library_path(struct stringlist *dirs, char* lib)
 	return NULL;
 }
 
+/** Run the EM fixup tool/peephole optimizer.
+ *
+ *  @param[in] input The input filename.
+ *  @param[in] output The output filename
+ *  @param[in] opt The optimizer program
+ *  @param[in,out] The information on the output filename
+ *
+ */
+static void runfixup(char *input, char* output, char* opt, int optimize)
+{
+	char* ext;
+	struct arglist call;
 
+	ext = extension(input);
+	if (strcmp(ext,"k")==0)
+	{
+	} else
+	{
+		panic("Internal error, input suffix is not .k");
+	}
+
+	init(&call);
+	append(&call, opt);
+	if (optimize==FALSE)
+	{
+		append(&call, "-n");
+	}
+	append(&call, input);
+	if (runvec(&call, output)==EXIT_SUCCESS)
+	{
+	}
+	else
+	{
+		panic("Peephole/Fixup phase failed.");
+	}
+}
+
+/** Run the preprocessor, as required. If the input
+ *  file has a .i suffix, then no preprocessing is
+ *  required and the output file will be the input filename.
+ *
+ *  @param[in] input The input filename.
+ *  @param[in] cpp C preprocessor program
+ *  @param[in] cppflags C preprocessor command flags
+ *  @param[in] include The C preprocessor include directories
+ *  @param[in,out] The information on the output filename
+ **/
+static void runpreprocessor(char* input, char* cpp, struct arglist *cppflags, char* include, struct output_info *output)
+{
+	struct arglist call;
+	char* temp_file;
+	char* ext;
+	output->remove = FALSE;
+	output->name = NULL;
+
+	ext = extension(input);
+
+	/* This should return doing nothing, no preprocessing to be done. */
+	if ((strcmp(ext,"m")==0) || (strcmp(ext,"a")==0) || (strcmp(ext,"k")==0))
+	{
+		return;
+	}
+
+
+	/* The file is a preprocessed C input file, do nothing */
+	if (strcmp(ext,"i")==0)
+	{
+		output->remove = FALSE;
+		output->name = input;
+		return;
+	}
+
+	/* If this is not a C file, check if it requires preprocessing */
+	if (strcmp(ext,"c")==0)
+	{
+		 /* Output extension is .i */
+		 ext = "i";
+	} else
+	{
+		if (needsprep(input)==0)
+		{
+			output->remove = FALSE;
+			output->name = input;
+			return;
+		}
+		/* Keep same extension for other suffixes */
+	}
+
+
+		temp_file = sys_maketempfile("drv", ext);
+		output->remove = TRUE;
+		if (temp_file==NULL)
+		{
+			panic("Cannot get temporary filename.");
+		}
+		init(&call);
+		append(&call, cpp);
+		concat(&call, cppflags);
+		append(&call, include);
+		append(&call, input);
+		if (runvec(&call, temp_file)==EXIT_SUCCESS)
+		{
+			/* The input file is now the preprocessor
+			 * output file.
+			 */
+			output->name = temp_file;
+		}
+		else
+		{
+			remove(temp_file);
+			panic("Pre-processing phase failed.");
+			tmp_file[0] = '\0';
+		}
+}
 
 int main(int argc, char *argv[])
 {
@@ -542,13 +759,14 @@ int main(int argc, char *argv[])
 	/* Contains the src file list */
 	struct stringlist srcfiles;
 	char *str;
+	char *str1;
 	char *startup_file;
 	char **argvec;
 	int count;
 	int index;
 	int libs_count;
 	char *ext;
-	FILE* fd;
+	char* outfile;
 	register struct arglist *call = &CALL_VEC;
 	char tmpbuffer[256];
 	char *file;
@@ -556,6 +774,7 @@ int main(int argc, char *argv[])
 	char *INCLUDE = NULL;
 	int compile_cnt = 0;
 	struct system_information* sys_info;
+	struct output_info output;
 
 	startup_file = NULL;
 	sys_info = &machine_info[0];
@@ -577,7 +796,7 @@ int main(int argc, char *argv[])
 	}
 
 	setbuf(stdout, (char *) 0);
-	/* get basebame of application. */
+	/* get basename of application. */
 	sys_basename(*argv++, ProgCall);
 
 	/* get compiler to use. */
@@ -586,10 +805,16 @@ int main(int argc, char *argv[])
 	CPP = expand_string(CPP_NAME,sys_info);
 	/** get linker to use */
 	LD = expand_string(sys_info->linker,sys_info);
+	/** get assembler to use */
+	AS = expand_string(sys_info->assembler,sys_info);
+	/** get peephole optimiser/fixup to use */
+	OPT = expand_string(OPT_NAME,sys_info);
 
 	/* Add system directory path. */
 	stringlist_add(&library_dirs,expand_string(LIB_DIR_1,sys_info));
 	stringlist_add(&library_dirs,expand_string(LIB_DIR_2,sys_info));
+	/* Add system include paths path. */
+	append(&CPP_FLAGS, expand_string(INC_DIR_1,sys_info));
 
 
 
@@ -655,7 +880,7 @@ int main(int argc, char *argv[])
 				stringlist_add(&library_dirs,stringdup(str+2));
 				break;
 			case 'l': /* library file */
-				stringlist_add(&srcfiles,stringdup(str));
+				stringlist_add(&srcfiles,str);
 				break;
 			case 'M': /* use other compiler (for testing) */
 				free(COMP);
@@ -715,7 +940,6 @@ int main(int argc, char *argv[])
 			str = search_library_path(&library_dirs,tmpbuffer);
 			if (str != NULL)
 			{
-				stringlist_add(&srcfiles,str);
 				append(&SRCFILES,str);
 			}
 		} else
@@ -767,74 +991,31 @@ int main(int argc, char *argv[])
 		sys_basename(file = *argvec++, BASE);
 
 		ext = extension(file);
+		/****************************************************
+		 * Run preprocessor on the source files if needed
+		 ****************************************************/
+		runpreprocessor(file,CPP,&CPP_FLAGS,INCLUDE,&output);
 
-		/* if not standard input and file is equal to the supported language suffix,
-		 * then compile it */
-		if (file[0] != '-' && ext != file && (!strcmp(ext, lang_suffix())))
+		/* if not standard input and original file is equal to the supported language suffix,
+		 * output file then compile it */
+		if ((file[0] != '-') && (ext != file) && (strcmp(ext, lang_suffix())==0))
 		{
 			if (compile_cnt > 1)
 				printf("%s\n", file);
 
-			ldfile = c_flag ? ofile : alloc((unsigned) strlen(BASE) + 3);
-
-			/****************************************************
-			 * Run C preprocessor on the source files and save
-			 * result in temporary output file.
-			 ****************************************************/
-			if (
-#ifdef FCC
-/*			(!strcmp(ext, "s")) && */
-#endif
-					needsprep(file))
-			{
-				if (sys_tmpnam(tmp_file)==NULL)
-				{
-					panic("Cannot get temporary filename.");
-				}
-				fd = fopen(tmp_file,"w+");
-				if (fd==NULL)
-				{
-					fclose(fd);
-					panic("Cannot write temporary file.");
-				}
-				init(call);
-				append(call, CPP);
-				concat(call, &CPP_FLAGS);
-				append(call, INCLUDE);
-				append(call, file);
-				if (runvec(call, tmp_file)==EXIT_SUCCESS)
-				{
-					/* The input file is now the preprocessor
-					 * output file.
-					 */
-					file = tmp_file;
-				}
-				else
-				{
-					remove(tmp_file);
-					tmp_file[0] = '\0';
-					continue;
-				}
-			}
+			outfile = c_flag ? ofile : alloc((unsigned) strlen(BASE) + 3);
 
 			/****************************************************
 			 * Compile the source file.
 			 ****************************************************/
 			init(call);
-			if (o_flag && c_flag)
-			{
-				f = o_FILE;
-			}
-			else
-			{
-				f = mkstr(ldfile, BASE, ".", "o", (char *) 0);
-			}
+			f = mkstr(outfile, BASE, ".", "k", (char *) 0);
 			append(call, COMP);
 			concat(call, &COMP_FLAGS);
 #ifdef FM2
 			append(call, INCLUDE);
 #endif
-			append(call, file);
+			append(call, output.name);
 			append(call, f);
 			if (runvec(call, (char *) 0)==EXIT_SUCCESS)
 			{
@@ -845,12 +1026,66 @@ int main(int argc, char *argv[])
 				remove(f);
 				continue;
 			}
-			cleanup(tmp_file);
-			tmp_file[0] = '\0';
-		}  /* endif compiling source file. */
+			if (output.remove)
+			{
+				cleanup(output.name);
+			};
+		}  /* endif compiling language source file. */
+		else
+		/** EM Assembly source file */
+		if ((file[0] != '-') && (ext != file) && (strcmp(ext, "e")==0))
+		{
+			if (compile_cnt > 1)
+				printf("%s\n", file);
 
+			outfile = c_flag ? ofile : alloc((unsigned) strlen(BASE) + 3);
 
-		else if (file[0] != '-' && strcmp(ext, "o") && strcmp(ext, "a"))
+			/****************************************************
+			 * Encode the EM source file
+			 ****************************************************/
+			init(call);
+			f = mkstr(outfile, BASE, ".", "k", (char *) 0);
+			append(call, AS);
+			append(call, output.name);
+			append(call, f);
+			if (runvec(call, (char *) 0)==EXIT_SUCCESS)
+			{
+				file = f;
+			}
+			else
+			{
+				remove(f);
+				continue;
+			}
+			if (output.remove)
+			{
+				cleanup(output.name);
+			};
+		}
+
+        ext = extension(file);
+		/****************************************************
+		 * Fixup / Optimise the EM encoded file
+		 ****************************************************/
+		if ((file[0] != '-') && (strcmp(ext,"k")==0))
+		{
+			/* Required tool to convert encoded EM encoded assembly (.k) to
+			 * another convert (.m)
+			 */
+			if (o_flag && c_flag)
+			{
+				f = o_FILE;
+			}
+			else
+			{
+				ldfile = alloc((unsigned) strlen(BASE) + 3);
+				f = mkstr(ldfile, BASE, ".", "m", (char *) 0);
+			}
+			runfixup(file,f,OPT,O_flag);
+			remove(file);
+			file = f;
+		} else
+		if 	((file[0] != '-') && strcmp(ext,"a") && strcmp(ext,"m") && (strcmp(ext,"o")))
 		{
 			warning("file with unknown suffix (%s) passed to the loader", ext,
 					NULL);
@@ -862,8 +1097,6 @@ int main(int argc, char *argv[])
 		/* Add the output object file to the list of files to link. */
 		append(&LDFILES, file);
 	}
-
-
 	/* See if we need to convert the flags. */
 	cv_flag =  sys_info->cv!=NULL;
 
@@ -882,7 +1115,8 @@ int main(int argc, char *argv[])
 
 		if (cv_flag)
 		{
-			if (sys_tmpnam(tmp_file)==NULL)
+			tmp_file = sys_maketempfile("drv", "");
+			if (tmp_file==NULL)
 			{
 				panic("Cannot get temporary filename.");
 			}
@@ -908,10 +1142,6 @@ int main(int argc, char *argv[])
 		concat(call, &LDFILES);
 /*		if (g_flag)
 			append(call, expand_string("$H/lib/$M/tail_db"));
-#ifdef FCC
-		if (!ansi_c)
-			append(call, expand_string("$H/lib/$S/tail_cc.1s"));
-#endif
 		concat(call, &LD_TAIL);*/
 		if (runvec(call, (char *) 0)==EXIT_FAILURE)
 		{
@@ -950,19 +1180,25 @@ int main(int argc, char *argv[])
 	exit(RET_CODE);
 }
 
+/** Reads the first character of the file,
+ *  and if it starts with the '#' character,
+ *  the file requires preprocessing.
+ *
+ *  @return 0 if no preprocessing is required
+ *   otherwise 1.
+ */
 static int needsprep(char *name)
 {
-/*	FILE *file;
+	FILE *file;
 	char fc;
 
 	file = fopen(name, "r");
 	if (file == 0)
-		return 0;
-	if (fread(file, &fc, 1) != 1)
+		panic("Cannot find file to open.");
+	if (fread(&fc, 1,1, file) != 1)
 		fc = 0;
 	fclose(file);
-	return fc == '#';*/
-	return 1;
+	return fc == '#';
 }
 
 static char * alloc(unsigned int u)
@@ -1059,6 +1295,12 @@ static void concat(struct arglist *al1, struct arglist *al2)
 	}
 }
 
+
+/** Replaces the current file suffix with
+ *  the new suffix and returns the value
+ *  in dst.
+ *
+ */
 char *mkstr(char *dst, ...)
 {
 	va_list ap;

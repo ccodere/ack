@@ -1,6 +1,6 @@
 .TH AFPC 1
 .SH NAME
-afpc \- fast ACK compatible Pascal compiler
+afpc \- ACK compatible Pascal compiler
 .SH SYNOPSIS
 .B afpc
 [
@@ -16,6 +16,9 @@ afpc \- fast ACK compatible Pascal compiler
 [ \fB\-D\fIname\fB=\fIdef\fR ]
 [
 .BI \-I pathname
+]
+[
+.BI \-L pathname
 ]
 [
 .B \-w
@@ -67,24 +70,27 @@ afpc \- fast ACK compatible Pascal compiler
 .BI \-U name
 ]
 [
+.BI \-O
+]
+[
 .BI -M compiler
 ]
 .I sourcefile ...
 .SH DESCRIPTION
 .LP
 .I afpc
-is a fast
+is a
 .B Pascal
-compiler. It translates 
+compiler for pre-defined target machines. It translates 
 .B Pascal
 programs
-into ack(1)-compatible relocatable object modules, and does so in one pass.
+into ack(1)-compatible relocatable object modules.
 Then, if the \fB\-c\fP flag is not given,
 .I afpc
 offers the object modules to a link-editor,
 to create an executable binary.
 .LP
-.I Fpc
+.I afpc
 accepts several types of filename arguments.  Files with 
 names ending in
 .B .p
@@ -119,6 +125,11 @@ If a single
 .B Pascal
 program is compiled and loaded all at once, the object module
 file is deleted.
+.LP
+.I afpc
+calls different external tools to do its processing. The paths to search
+for these tools is either done through \fIACK_HOME\fP environment variable
+or if not present by the path pointed to by \fI"em_path.h"\fP defined at compile time.
 .SH OPTIONS
 .LP
 .IP \fB\-c\fP
@@ -151,6 +162,14 @@ then in directories in
 .B \-I
 options, and finally, in
 .I /usr/include.
+.IP \fB\-L\fIpathname\fR
+.br
+Add
+.I pathname
+to the list of directories in which to search for
+libraries when doing link-editing. These directories
+will be searched before the usual places and in
+the same order as declared.
 .IP "\fB\-o \fIoutput\fR"
 Name the final output file
 .I output.
@@ -164,6 +183,9 @@ Verbose. Print the commands as they are executed.
 .IP \fB\-vn\fP
 .br
 Verbose, no execute. Only print the commands, do not execute them.
+.IP \fB\-O\fp
+.br
+Run the generated code through the peephole optimizer
 .IP \fB\-L\fP
 .br
 do not generate code to keep track of
@@ -216,6 +238,11 @@ C-functions. This option will cause the type 'string' to be known.
 .IP \fB\-M\fIcompiler\fR
 .br
 use \fIcompiler\fR as Modula-2 compiler instead of the default.
+.SH "ENVIRONMENT VARIABLES"
+.IP ACK_HOME
+This environment variable sets the home
+directory of the ACK installation. This is used to find different utilities called by this
+front end if not installed in the original installation directory.
 .SH "SEE ALSO"
 .IP [1]
 J.W. Stevenson, H. v. Eck, \fIAmsterdam Compiler Kit-Pascal reference manual\fP.
