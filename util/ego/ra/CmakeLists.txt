@@ -1,0 +1,48 @@
+cmake_minimum_required (VERSION 3.0)
+project(ra)
+
+set(SRC_C
+	ra_allocl.c
+	ra_aux.c
+	ra.c
+	ra_interv.c
+	ra_items.c
+	ra_lifet.c
+	ra_pack.c
+	ra_profits.c
+	ra_xform.c
+)
+
+set(GEN_SRC 
+ ${CMAKE_CURRENT_BINARY_DIR}/itemtab.h
+)
+
+set(INCLUDE_DIRS
+ .
+ ${CMAKE_CURRENT_BINARY_DIR}/../../../h
+ ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+
+add_library(${PROJECT_NAME} ${SRC_C} ${GEN_SRC})
+target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIRS})
+target_compile_definitions(${PROJECT_NAME} PUBLIC NORCSID=1 VERBOSE)
+target_link_libraries(${PROJECT_NAME} emheaders em_data ego)
+
+install(TARGETS ${PROJECT_NAME} 
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        PUBLIC_HEADER DESTINATION include
+)
+
+###############################################
+# Generate other source files
+###############################################     
+
+add_executable(makeitems makeitems.c)
+add_custom_command(
+    OUTPUT itemtab.h
+    COMMAND makeitems ${CMAKE_CURRENT_BINARY_DIR}/../../../modules/src/em_data/em_mnem.h ${CMAKE_CURRENT_SOURCE_DIR}/itemtab.src>itemtab.h
+    DEPENDS makeitems
+)
