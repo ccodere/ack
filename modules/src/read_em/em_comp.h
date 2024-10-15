@@ -17,6 +17,15 @@
 #include "em_arith.h"
 #include "em_label.h"
 
+#ifndef PRIVATE
+#define PRIVATE static
+#endif
+#ifndef EXPORT
+#define EXPORT
+#endif
+
+
+
 /** Represents instruction arguments. */
 struct e_arg {
 	/** Type of this argument. The different argument
