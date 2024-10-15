@@ -56,6 +56,7 @@ systems, it is difficult to tell which.  The system call fails.
 .Wn "MPXCALL \- not (yet) implemented" WMPXIMP 14
 .Wn "PROFIL \- not (yet) implemented" WPROFILIMP 15
 .Wn "PTRACE \- not (yet) implemented" WPTRACEIMP 16
+.Wn "MONCALL \- not (yet) implemente" WNOIMP 17
 The monitor calls \fImpxcall()\fP, \fIprofil()\fP and \fIptrace()\fP
 have not been implemented.  The monitor call fails.
 .Wn "Inaccessible memory in system call" WMONFLT 21
