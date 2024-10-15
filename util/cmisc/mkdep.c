@@ -7,6 +7,8 @@
 /* Log:
  [Thu Oct  6 09:56:30 MET 1988; erikb]
  Added option '-d' which suppresses "file.c :" be printed
+ [2024-09-27; ceco]
+ Added options to add suffixes and prefixes. Added help.
  */
 
 #include <stdio.h>
@@ -15,26 +17,76 @@
 
 #define BSIZ 1024
 char *prog;
+/* object file suffix */
+char* osuffix;
+/* object file prefix */
+char* oprefix;
+/** search system directory includes, those that start with < */
+int searchsys;
+/** The command to execute for each target, NULL if no command should be output */
+char* command;
+
+/** Namelist */
+struct namelist *nl = NULL;
+/** Include list */
+struct namelist* includes = NULL;
 
 int dflag = 0; /* suppress "file.c :" */
 
+/** Linked list of strings. */
 struct namelist
 {
 	struct namelist *next;
 	char *name;
 };
 
-struct namelist *freelist;
 struct namelist *new_namelist();
-struct namelist *nl = 0;
 
 char *Malloc(unsigned int);
 
 char *include_line(char *);
 int dofile(char *);
+int dosrcfile(char *fn);
 
-char *Malloc(u)
-	unsigned u;
+/** Similar to POSIX call, returns
+ *  a pointer to the location of the
+ *  filename part of the path. This
+ *  function is portable across different platforms.
+ *
+ */
+static char *basename(char *path)
+{
+	char* result;
+	if (path == NULL)
+	{
+		return NULL;
+	}
+	/* UNIX path specification */
+	result = strrchr(path,'/');
+	if (result != NULL)
+	{
+		result++;
+		return result;
+	}
+	/* Windows path specification */
+	result = strrchr(path,'\\');
+	if (result != NULL)
+	{
+		result++;
+		return result;
+	}
+	/* Windows drive specification / AmigaOS / others */
+	result = strrchr(path,':');
+	if (result != NULL)
+	{
+		result++;
+		return result;
+	}
+	return path;
+}
+
+
+char *Malloc(unsigned int u)
 {
 	char *sp;
 
@@ -46,17 +98,29 @@ char *Malloc(u)
 	return sp;
 }
 
-struct namelist *
-new_namelist()
+char *strdup(const char *s1)
 {
-	register struct namelist *nlp = freelist;
+	char* newstr;
+	newstr = Malloc(strlen(s1)+1);
+	strcpy(newstr,s1);
+	return newstr;
+}
 
-	if (nlp)
-	{
-		freelist = nlp->next;
-		return nlp;
-	}
+/** Copies up to n characters, and adds
+ *  a null character at end.
+ */
+char *strndup(const char *s1, size_t n)
+{
+	char* newstr;
+	newstr = Malloc(n+1);
+	strncpy(newstr,s1,n);
+	newstr[n] = 0;
+	return newstr;
+}
 
+
+struct namelist *new_namelist()
+{
 	return (struct namelist *) Malloc(sizeof(struct namelist));
 }
 
@@ -65,15 +129,16 @@ void free_namelist(struct namelist *nlp)
 	if (nlp)
 	{
 		free_namelist(nlp->next);
-		nlp->next = freelist;
-		freelist = nlp;
+		nlp->next = NULL;
+		free(nlp);
 	}
 }
 
-void add_name(char *nm)
+void add_name(struct namelist **list,char *nm)
 {
-	struct namelist *nlp = nl, *lnlp = 0, *nnlp;
+	struct namelist *nlp = *list, *lnlp = 0, *nnlp;
 
+	/* search through the linked list. */
 	while (nlp)
 	{
 		register int i = strcmp(nm, nlp->name);
@@ -85,7 +150,8 @@ void add_name(char *nm)
 		nlp = nlp->next;
 	}
 
-	(nnlp = new_namelist())->name = strcpy(Malloc((unsigned) strlen(nm) + 1),
+	nnlp = new_namelist();
+	nnlp->name = strcpy(Malloc((unsigned) strlen(nm) + 1),
 			nm);
 
 	if (lnlp)
@@ -95,58 +161,195 @@ void add_name(char *nm)
 	}
 	else
 	{
-		nnlp->next = nl;
-		nl = nnlp;
+		nnlp->next = *list;
+		*list = nnlp;
 	}
 }
 
 void print_namelist(char *nm, struct namelist *nlp)
 {
-	while (nlp)
-	{
-		if (!dflag)
-			printf("%s: ", nm);
-		printf("%s\n", nlp->name);
-		nlp = nlp->next;
-	}
+	char* filename;
+	char* suffix;
+	char* finalname;
+		/* Get the filename only */
+		filename = basename(nm);
+		/* Get the filename without the suffix */
+		suffix = strrchr(filename, '.');
+		if (suffix == NULL)
+		{
+			if (!dflag)
+				printf("%s%s%s: %s", oprefix,filename,osuffix,filename);
+		} else
+		{
+			finalname = strndup(filename,strlen(filename)-strlen(suffix));
+			if (!dflag)
+				printf("%s%s%s: %s", oprefix,finalname,osuffix,filename);
+			free(finalname);
+		}
+		while (nlp)
+		{
+		  printf(" %s", nlp->name);
+		  nlp = nlp->next;
+		}
+		printf("\n");
+		if (command != NULL)
+		{
+		  printf("\t%s\n", command);
+		}
+}
+
+static void print_help()
+{
+	printf("usage: mkdep [-oobjsuffix] [-oobjprefix] [-ccommand] [-d] file ...\n");
+	printf("-ccommand\n");
+	printf("  Set the command to execute for each target\n");
+	printf("-d\n");
+	printf("  Do not print target\n");
+	printf("-Iincludedir\n");
+	printf("  Include directories to search in for include files\n");
+	printf("-oobjsuffix\n");
+	printf("  Object file suffix override. Default value is '.o'\n");
+	printf("-pobjprefix\n");
+	printf("  Object file prefix override. The prefix is prepended to the name of the object file. Default value is an empty string.\n");
+	printf("-Y\n");
+	printf("  Exclude system header files from the header file search.\n");
+	exit(EXIT_FAILURE);
 }
 
 /*ARGSUSED*/
 int main(int argc, char *argv[])
 {
 	int err = 0;
+	int index =0;
+	/** searchsystem include directories */
+	searchsys = 1;
+	command = NULL;
 
-	prog = *argv++;
-	if (*argv && **argv == '-')
+	if (argc == 1)
 	{
-		char *opt = &(*argv++)[1];
-
-		if (*opt++ != 'd' || *opt)
-		{
-			fprintf(stderr, "use: %s [-d] [file ...]\n", prog);
-			exit(1);
-		}
-		dflag = 1;
+		print_help();
 	}
 
-	while (*argv)
+	osuffix = NULL;
+	oprefix = NULL;
+	prog = argv[index++];
+
+	while (index < argc)
+	{
+		char* arg = argv[index];
+		if (arg[0] == '-')
+		{
+			switch (arg[1])
+			{
+				case 'd':
+					dflag = 1;
+					break;
+				case 'c':
+				    command = strdup(&arg[2]);
+					break;
+				case 'o':
+					osuffix = strdup(&arg[2]);
+					break;
+				case 'I':
+					add_name(&includes,strdup(&arg[2]));
+					break;
+				/* disable searching system directories */
+				case 'Y':
+					searchsys = 0;
+					break;
+				case 'p':
+					oprefix = strdup(&arg[2]);
+					break;
+				default:
+					printf("Invalid option : %s\n",arg);
+					print_help();
+			}
+		} else
+		{
+			break;
+		}
+		index++;
+	}
+
+	if (osuffix == NULL)
+	{
+		osuffix = strdup(".o");
+	}
+	if (oprefix == NULL)
+	{
+		oprefix = strdup("");
+	}
+	while (argv[index]!=NULL)
 	{
 		free_namelist(nl);
 		nl = 0;
-		if (dofile(*argv) == 0)
+		if (dosrcfile(argv[index]) == 0)
 			++err;
-		print_namelist(*argv++, nl);
+		print_namelist(argv[index], nl);
+		index++;
 	}
-	exit(err ? 1 : 0);
+	free(osuffix);
+	free(oprefix);
+	free_namelist(includes);
+	exit(err ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
-int contains_slash(register char *s)
+/** Try to open the specified file. Also looks
+ *  into all specified include directories to search
+ *  for the files.
+ *
+ *
+ */
+static FILE* try_open(char *fn)
 {
-	while (*s)
-		if (*s++ == '/')
-			return 1;
-	return 0;
+	FILE *fp = NULL;
+	char* name;
+	struct namelist *nlp = includes;
+	fp = fopen(fn, "r");
+	if (fp != NULL)
+		return fp;
+
+	name = Malloc(strlen(fn)+1);
+	/* Search for all include file directories */
+	while (nlp)
+	{
+		name = realloc(name,strlen(fn)+strlen(nlp->name)+1+1);
+		sprintf(name,"%s/%s",nlp->name,fn);
+		fp = fopen(name, "r");
+		if (fp != NULL)
+			break;
+
+		nlp = nlp->next;
+	}
+    free(name);
+    return fp;
 }
+
+
+int dosrcfile(char *fn)
+{
+	char buf[BSIZ];
+	FILE *fp;
+	char *nm;
+
+	if ((fp = fopen(fn, "r")) == NULL)
+	{
+		fprintf(stderr, "%s: cannot read %s\n", prog, fn);
+		return 0;
+	}
+
+	while (fgets(buf, BSIZ, fp) != NULL)
+		if ((nm = include_line(buf)))
+		{
+			add_name(&nl,nm);
+			if (dofile(nm))
+				;
+		}
+
+	fclose(fp);
+	return 1;
+}
+
 
 int dofile(char *fn)
 {
@@ -154,25 +357,16 @@ int dofile(char *fn)
 	FILE *fp;
 	char *nm;
 
-	if ((fp = fopen(fn, "r")) == 0)
+	if ((fp = try_open(fn)) == NULL)
 	{
 		fprintf(stderr, "%s: cannot read %s\n", prog, fn);
 		return 0;
 	}
 
-	if (contains_slash(fn))
-	{
-		fprintf(stderr,
-				"%s: (warning) %s not in current directory; not checked\n",
-				prog, fn);
-		fclose(fp);
-		return 1;
-	}
-
 	while (fgets(buf, BSIZ, fp) != NULL)
 		if ((nm = include_line(buf)))
 		{
-			add_name(nm);
+			add_name(&nl,nm);
 			if (dofile(nm))
 				;
 		}
@@ -195,8 +389,9 @@ char *include_line(char *s)
 		{
 			while ((*s == '\t') || (*s == ' '))
 				s++;
-			if (*s++ == '"')
+			if (*s == '"')
 			{
+				s++;
 				char *nm = s;
 
 				while (*s != 0 && *s != '"')
@@ -204,7 +399,20 @@ char *include_line(char *s)
 				*s = '\0';
 				return nm;
 			}
+			if (searchsys==1)
+			{
+				if (*s == '<')
+				{
+					s++;
+					char *nm = s;
+
+					while (*s != 0 && *s != '>')
+						s++;
+					*s = '\0';
+					return nm;
+				}
+			}
 		}
 	}
-	return (char *) 0;
+	return NULL;
 }

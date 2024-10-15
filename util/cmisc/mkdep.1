@@ -4,13 +4,17 @@
 mkdep \- dependency generator for C-programs
 .SH SYNOPSYS
 .B mkdep
-[ -d ] file ...
+[ -d ] [ -oobjsuffix ] [ -pobjprefix ] [ -Iincludedir ... ] [-ccommand] [ -Y ] file ...
 .SH DESCRIPTION
 .I Mkdep
 scans the files in the argument list for C-preprocessor lines of the form
 .nf
 	#include "\fIfile1\fP"
 .fi
+.nf
+	#include <\fIfile1\fP>
+.fi
+
 and produces for each file \fIarg\fR in the argument list lines of the form
 .nf
 	\fIarg\fR: \fIfile1\fR
@@ -19,11 +23,39 @@ and produces for each file \fIarg\fR in the argument list lines of the form
 .fi
 where \fIfile1\fR, \fIfile2\fR, etc. are filenames included by \fIarg\fR, or
 by a file included by \fIarg\fR, etc.
-.PP
-The \fB-d\fP suppresses the \fIarg\fR: part.
-.PP
-Only files in the current directory are scanned.
+
+.br
+\fIOptions\fP is a, sequence of the following combinations:
+.IP \fB\-c\fR\fIcommand\fR
+.br
+Add the \fIcommand\fR for each generated target. By default there is no command.
+.IP \fB\-d\fR
+.br
+Suppresses the \fIarg\fR: part.
+.IP \fB\-I\fR\fIincludedir\fR
+.br
+Include directory. This option tells prepend to prepend includedir to its list of directories to search when 
+it encounters a #include directive.
+.IP \fB\-o\fR\fIobjsuffix\fR
+.br
+\fIarg\fR file suffix.
+Some systems may have object files whose suffix is something other
+than ``.o''.
+This option allows you to specify another suffix, such as
+``.b'' with
+.I \-o.b
+or ``:obj''
+with
+.I \-o:obj
+and so forth. 
+.IP \fB\-p\fR\fIobjprefix\fR
+.br
+\fIarg\fR file prefix. The prefix is prepended to the name of the \fIarg\fR file. This is 
+usually used to designate a different directory for the object file. The default is the empty string. 
+.IP \fB\-Y\fR
+.br
+When this option is set the include directories that point to system header files (those beginning with "<") are
+not included in the search.
+
 .SH "SEE ALSO"
 make(1)
-.SH BUGS
-Should be able to handle files from other directories
