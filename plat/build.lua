@@ -34,7 +34,7 @@ definerule("ackfile",
 			},
 			suffix = suffix,
 			commands = {
-				"ACKDIR=$(INSDIR) $(INSDIR)/bin/ack -m%{plat} "..c.." -o %{outs} %{ins} %{hdrpaths} %{ackcflags}"
+				"ACK_HOME=$(INSDIR) $(INSDIR)/bin/ack -m%{plat} "..c.." -o %{outs} %{ins} %{hdrpaths} %{ackcflags}"
 			}
 		}
 	end
@@ -84,7 +84,7 @@ definerule("acklibrary",
 			suffix = em and ".m" or ".o",
 			commands = {
 				"rm -f %{outs[1]}",
-				"%{splitter(ins, 100, 'ACKDIR=$(INSDIR) $(INSDIR)/bin/aal qc '..tostring(outs[1])..' %%')}"
+				"%{splitter(ins, 100, 'ACK_HOME=$(INSDIR) $(INSDIR)/bin/aal qc '..tostring(outs[1])..' %%')}"
 			}
 		}
 	end
@@ -119,7 +119,7 @@ definerule("ackprogram",
 			},
 			_clibrary = acklibrary,
 			commands = {
-				"ACKDIR=$(INSDIR) $(INSDIR)/bin/ack -m%{plat} -.%{lang} -o %{outs} %{ins} %{ackldflags}"
+				"ACK_HOME=$(INSDIR) $(INSDIR)/bin/ack -m%{plat} -.%{lang} -o %{outs} %{ins} %{ackldflags}"
 			}
 		}
 	end
