@@ -4,7 +4,7 @@ normalrule {
 	outleaves = { "em_path.h" },
 	commands = {
 		"echo '#define EM_DIR \"$(PREFIX)\"' > %{outs}",
-		"echo '#define ACK_PATH \"share/ack/descr\"' >> %{outs}",
+		"echo '#define ACK_DATA_PATH \"share/ack/descr\"' >> %{outs}",
 	}
 }
 
