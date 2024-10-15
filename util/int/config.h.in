@@ -1,0 +1,25 @@
+/* Configuration file for interpreter monitor calls */
+
+
+/* System header existence */
+#cmakedefine HAS_UNISTD_H
+#cmakedefine HAS_SYS_WAIT_H
+#cmakedefine HAS_SYS_STAT_H
+#cmakedefine HAS_SYS_TIMES_H
+#cmakedefine HAS_SYS_TIMEB_H
+#cmakedefine HAS_FCNTL_H
+
+/* Symbol existence */
+
+#cmakedefine HAS_ALARM
+#cmakedefine HAS_ACCESS
+#cmakedefine HAS_FORK
+#cmakedefine HAS_FTIME
+#cmakedefine HAS_KILL
+#cmakedefine HAS_PAUSE
+#cmakedefine HAS_SYNC
+#cmakedefine HAS_WAIT
+#cmakedefine HAS_TIMES
+
+
+

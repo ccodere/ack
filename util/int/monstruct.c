@@ -9,14 +9,12 @@
 #include	"global.h"
 #include	"mem.h"
 #include	"monstruct.h"
+#include    "mondefs.h"
 #include	"whatever.h"
 
 #include	<sys/types.h>
 #include	<sys/stat.h>
-#if __STDC__
 #include	<time.h>
-#endif
-#include	<sys/times.h>
 
 #ifdef WANT_SGTTY
 #include	<sgtty.h>
@@ -72,7 +70,7 @@ int timeb2mem(ptr addr, struct timeb *timebb)
 	return 1;
 }
 
-int tms2mem(ptr addr, struct tms *tmsb)
+int tms2mem(ptr addr, struct emu_tms *tmsb)
 {
 	if (memfault(addr, V7tms_sz))
 		return 0;

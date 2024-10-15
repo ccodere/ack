@@ -18,13 +18,43 @@
  *  The monitor call "sigtrp()" is handled by "do_sigtrp()".  The first	*
  *  argument is a EM-trap number (0<=tn<=252), the second a UNIX signal	*
  *  number.  The user wants trap "tn" to be generated, in case signal	*
- *  "sn" occurs.  The report about this interpreter has a section,	*
+ *  "sn" occurs.  The report about this interpreter has a section,	    *
  *  giving all details about signal handling.  Do_sigtrp() returns the	*
  *  previous trap-number "sn" was mapped onto.  A return value of -1	*
- *  indicates an error.							*
+ *  indicates an error.							                        *
  ************************************************************************/
 
-#define	UNIX_trap(sn)	(SIGILL <= sn && sn <= SIGSYS)
+/* Return non-zero if this is a UNIX signal number that would terminate */
+PRIVATE int	UNIX_trap(int sn)
+{
+	switch (sn)
+	{
+		case SIGSEGV:
+		case SIGILL:
+		case SIGFPE:
+		case SIGABRT:
+#ifdef SIGBUS
+		case SIGBUS:
+#endif
+#ifdef SIGQUIT
+		case SIGQUIT:
+#endif
+#ifdef SIGSYS
+		case SIGSYS:
+#endif
+#ifdef SIGTRAP
+		case SIGTRAP:
+#endif
+#ifdef SIGXCPU
+		case SIGXCPU:
+#endif
+#ifdef SIGFXSZ
+		case SIGXFSZ:
+#endif
+			return 1;
+   }
+   return 0;
+}
 
 #ifndef NSIG
 #define NSIG _NSIG
