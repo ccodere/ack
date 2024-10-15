@@ -54,11 +54,6 @@ int main(int argc, char** argv)
 	{
 		setlist(FRONTENDS);
 	}
-	if (callname)
-	{
-		if (!machine)
-			machine = callname;
-	}
 	if (!machine && !(machine = getenv("ACKM")))
 	{
 #ifdef ACKM
@@ -157,7 +152,7 @@ static void varinit(void)
 	register char* envstr;
 	extern char* em_dir;
 
-	if ((envstr = getenv("ACKDIR")) != NULL)
+	if ((envstr = getenv("ACK_HOME")) != NULL)
 	{
 		em_dir = keeps(envstr);
 	}

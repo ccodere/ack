@@ -74,9 +74,10 @@ This descriptions are simply files read in at compile time.
 At the moment of writing this document, the descriptions
 included are: pdp, fe, i86, m68k2, vax2 and int.
 The name of a description is first searched for internally,
-then in lib/descr/\fIname\fP, then in
-lib/\fIname\fP/descr, and finally in the current
-directory of the user.
+then in {ACK_DATA_PATH}/descr/\fIname\fP, then in
+lib/\fIname\fP/descr and {ACK_DATA_PATH}/\fIname\fP/descr, then in
+the file pointed to by the ACKM environment variable and finally 
+in the current directory of the user.
 .NH
 Using the description file
 .PP

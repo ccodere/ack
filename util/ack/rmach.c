@@ -241,7 +241,7 @@ static void intrf(void) {
 		if ( new->t_needed ) vprint("\tneeded: %s\n",new->t_needed) ;
 	}
 #endif
-	if ( new->t_optim && 
+	if ( new->t_optim &&
 	     ( new->t_optim <= Optlevel || inoptlist(new->t_name) ) ) {
 		new->t_optim = Optlevel;
 	}
@@ -269,17 +269,30 @@ static void open_in(char *name) {
 	}
 	/* Not in core */
 	incore= NO ;
-	/* Try to read EM_DIR/lib/MACH/descr */
-	gr_cat(&rline,em_dir) ;
-	gr_cat(&rline,"/lib/") ; gr_cat(&rline,name) ;
-	gr_cat(&rline,"/descr") ;
+	/* Try to read "${MACH}" in ${ACK_DATA_PATH}/descr */
+	gr_cat(&rline,ACK_DATA_PATH);
+	gr_cat(&rline,"/") ;
+	gr_cat(&rline,"descr") ;
+	gr_cat(&rline,"/") ;
+	gr_cat(&rline,name) ;
 	infile= fopen(gr_start(rline),"r") ;
 	if ( !infile ) {
+		/* Try to read file "descr" in ${EM_DIR}/lib/${MACH} */
 		gr_throw(&rline) ;
-		gr_cat(&rline,em_dir) ; gr_cat(&rline,"/") ;
-		gr_cat(&rline,ACK_PATH); gr_cat(&rline,"/") ;
+		gr_cat(&rline,em_dir) ;
+		gr_cat(&rline,"/lib/") ;
 		gr_cat(&rline,name) ;
+		gr_cat(&rline,"/descr") ;
 		infile= fopen(gr_start(rline),"r") ;
+		if ( !infile ) {
+			/* Try to read file "descr" ${ACK_DATA_PATH}/${MACH}  */
+			gr_throw(&rline) ;
+			gr_cat(&rline,ACK_DATA_PATH);
+			gr_cat(&rline,"/") ;
+			gr_cat(&rline,name) ;
+			gr_cat(&rline,"/descr") ;
+			infile= fopen(gr_start(rline),"r") ;
+		}
 	}
 	if ( !infile ) {
 		infile= fopen(name,"r") ;

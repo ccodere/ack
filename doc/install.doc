@@ -251,8 +251,8 @@ l l.
 cvmach	conversion program to convert from a.out to platform specific binaries.
 emu	system specific platform emulator or simulator used for testing.
 libsys	system-dependent library used to interface with the operating system.
-include/ack	system-dependent include files for building libc library, including mandatory "plat.h"
-include/sys	system-dependent include files used with libsys.
+include/ack	system-dependent include files for building libc library, including mandatory "plat.h" that is used to configure the functionality.
+include/sys	system-dependent include files used with libsys and libc including mandatory "types.h" that defines basic types.
 .TE
 
 
@@ -439,8 +439,6 @@ contains some programs handling ACK a.out format, such as anm, asize.
 the archivers to be used for all EM utilities.
 .IP "util/ass"
 the EM assembler and linker (*.[km] + libraries => e.out).
-.IP "util/byacc"
-this is Berkeley yacc, in the public domain. \fIObsolete\fP.
 .IP "util/ceg"
 code expander generator.
 .IP "util/cgg"
@@ -448,8 +446,6 @@ a program needed for compiling backends.
 .IP "util/cmisc"
 contains some programs to help in resolving name conflicts, and
 a dependency generator for makefiles.
-.IP "util/cpp"
-the C preprocessor. \fIObsolete\fP.
 .IP "util/ego"
 the global optimizer.
 .IP "util/grind"
@@ -469,40 +465,10 @@ decode (*.[km] => *.e) + encode (*.e => *.k).
 a program needed for compiling the newest backends.
 .IP "util/opt"
 the EM peephole optimizer (*.k => *.m).
-.IP "util/shf"
+.IP "util/scripts"
 various shell files.
 .IP "util/topgen"
 the target optimizer generator.
-.IP "util/flex"
-this is a replacement for lex. \fIObsolete\fP. It carries the following copyright notice:
-.IP ""
-.nf
-Copyright (c) 1990 The Regents of the University of California.
-All rights reserved.
-
-This code is derived from software contributed to Berkeley by
-Vern Paxson.
-
-The United States Government has rights in this work pursuant
-to contract no. DE-AC03-76SF00098 between the United States
-Department of Energy and the University of California.
-
-Redistribution and use in source and binary forms are permitted
-provided that: (1) source distributions retain this entire
-copyright notice and comment, and (2) distributions including
-binaries display the following acknowledgement:  ``This product
-includes software developed by the University of California,
-Berkeley and its contributors'' in the documentation or other
-materials provided with the distribution and in all advertising
-materials mentioning features or use of this software.  Neither the
-name of the University nor the names of its contributors may be
-used to endorse or promote products derived from this software
-without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
-IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-PURPOSE.
 .fi
 .ne 4
 .if n .nr PD 1v

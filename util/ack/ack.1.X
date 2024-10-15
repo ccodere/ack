@@ -416,7 +416,7 @@ input:name:output:description
 .in -2
 .
 .SH "ENVIRONMENT VARIABLES"
-.IP ACKDIR
+.IP ACK_HOME
 If set, this environment variable overrides ack's idea of its home
 directory.
 .IP ACKM
