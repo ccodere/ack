@@ -114,6 +114,8 @@ time_t distr_time;
 #define S_ISGID 0
 #endif
 
+
+
 #define MODE_COUNT 11
 
 char io_buffer[IO_SIZE];
@@ -509,7 +511,7 @@ void get(int argc, char *argv[])
 		{
 #ifndef AAL
 			if (app_fl)
-			add(argv[i], ar_f, "a - %s\n");
+			add(argv[i], ar_f, temp_fd, "a - %s\n");
 			else
 #endif
 			if (rep_fl
