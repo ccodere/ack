@@ -12,22 +12,13 @@
 #include <sys/stat.h>
 #include <errno.h>
 /* UNIX specific */
-#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
+#if (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
 #ifndef unix
 #define unix
 #endif
 #endif
-
-#if defined(__MINGW32__) || defined(__MINGW64__)
-#ifndef unix
-#define unix
-#endif
-#endif
-
-
 
 #ifdef unix
-#include <unistd.h>
 #include <utime.h>
 #endif
 #include "h.h"
