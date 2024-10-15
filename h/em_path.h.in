@@ -1,0 +1,2 @@
+#define EM_DIR  "${ACK_HOME}"
+#define ACK_DATA_PATH  "${ACK_DATA_PATH}"
