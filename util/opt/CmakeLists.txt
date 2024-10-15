@@ -1,0 +1,101 @@
+cmake_minimum_required (VERSION 3.0)
+project(em_opt)
+
+set(SRC_C
+	alloc.c
+	backward.c
+	cleanup.c
+	flow.c
+	getline.c
+	lookup.c
+	main.c
+	peephole.c
+	process.c
+	putline.c
+	reg.c
+	special.c
+	tes.c
+	util.c
+	var.c
+)
+
+set(GEN_SRC 
+ ${CMAKE_CURRENT_BINARY_DIR}/pattern.c
+ ${CMAKE_CURRENT_BINARY_DIR}/pop_push.c
+)
+
+set(INCLUDE_DIRS
+ .
+ ${CMAKE_CURRENT_BINARY_DIR}/../../../h
+ ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+
+find_program (YACC NAMES yacc byacc bison)
+find_program (LEX NAMES flex lex)
+
+if(NOT YACC)
+message(SEND_ERROR "yacc tool not found to build \"${PROJECT_NAME}\"")
+endif(NOT YACC)
+
+if(NOT LEX)
+message(SEND_ERROR "lex tool not found to build \"${PROJECT_NAME}\"")
+endif(NOT LEX)
+
+
+
+add_executable(${PROJECT_NAME} ${SRC_C} ${GEN_SRC})
+target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIRS})
+target_compile_definitions(${PROJECT_NAME} PUBLIC NORCSID=1)
+target_link_libraries(${PROJECT_NAME} emheaders alloc print string system data em_data)
+
+add_executable(em_opt2 ${SRC_C} ${GEN_SRC})
+target_include_directories(em_opt2 PUBLIC ${INCLUDE_DIRS})
+target_compile_definitions(em_opt2 PUBLIC NORCSID=1 GLOBAL_OPT)
+target_link_libraries(em_opt2 emheaders alloc print string system data em_data)
+
+
+
+add_custom_command(
+  OUTPUT pop_push.c
+  COMMAND ${CMAKE_COMMAND} -E copy
+                ${CMAKE_CURRENT_SOURCE_DIR}/pop_push.awk
+                ${CMAKE_CURRENT_BINARY_DIR}/pop_push.awk
+  COMMAND awk -f ${CMAKE_CURRENT_BINARY_DIR}/pop_push.awk ${CMAKE_CURRENT_SOURCE_DIR}/../../h/em_table>pop_push.c
+  COMMENT "Generating pop_push.c file"
+)
+
+###############################################
+# Generate other source files
+###############################################     
+add_custom_command(
+  OUTPUT pattern.c
+  COMMAND cpp ${CMAKE_CURRENT_SOURCE_DIR}/patterns>${CMAKE_CURRENT_BINARY_DIR}/patterns.out
+  COMMAND mktab < ${CMAKE_CURRENT_BINARY_DIR}/patterns.out>pattern.c
+  COMMENT "Generating pattern.c file"
+  DEPENDS mktab
+)
+
+set(MKTAB_SRC
+  ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.c
+  ${CMAKE_CURRENT_BINARY_DIR}/y.tab.c
+  ${CMAKE_CURRENT_BINARY_DIR}/y.tab.h
+)  
+
+add_executable(mktab ${MKTAB_SRC})
+target_link_libraries(mktab em_data)
+target_include_directories(mktab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+add_custom_command(
+  OUTPUT lex.yy.c y.tab.c y.tab.h
+  COMMAND ${LEX} ${CMAKE_CURRENT_SOURCE_DIR}/scan.l
+  COMMAND ${YACC} -b y -d ${CMAKE_CURRENT_SOURCE_DIR}/mktab.y
+  COMMENT "Generating mktab.c file"
+  DEPENDS mktab.y scan.l
+)
+
+
+
+install(TARGETS ${PROJECT_NAME} em_opt2
+        RUNTIME DESTINATION lib/ack
+)
+
