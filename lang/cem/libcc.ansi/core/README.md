@@ -17,3 +17,10 @@ Examples of what doesn't go here:
     etc.
   - `signal()` --- because it can't be implemented portably and needs to go
     in the plat.
+
+It does assume the following minimum requirements :
+
+   - `_exit()` exists and will be linked in, which terminates the
+     process with the specified exit code.
+   - `environ` variable exists pointing to the environment variables
+     for this process.
