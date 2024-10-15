@@ -7,9 +7,11 @@
 /* $Id$ */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include <signal.h>
-#include <unistd.h>
+
+extern void _exit(int status);
 
 void abort(void)
 {
@@ -25,7 +27,7 @@ void abort(void)
 	 */
 	while (--count != 0)
 		abs(*bad_ptr);
-	write(2, "abort!\n", 7);
+	fputs("abort!\n",stderr);
 	for (;;)
 		_exit(128 + SIGABRT);
 }

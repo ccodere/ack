@@ -1,5 +1,7 @@
 /*
- * gmtime - convert the calendar time into broken down time
+ * gmtime - convert the calendar time into broken down time,
+ * This implementation assume that time_t is an arithmetic
+ * value indicating the number of seconds since POSIX EPOCH.
  */
 /* $Id$ */
 

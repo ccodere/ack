@@ -1,5 +1,8 @@
 /*
  * mktime - convert local time into calendar time
+ * This implementation assume that time_t is an arithmetic
+ * value indicating the number of seconds since POSIX EPOCH.
+
  */
 /* $Id$ */
 

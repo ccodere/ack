@@ -1,5 +1,7 @@
 /*
- * localtime - convert a calendar time into broken down time
+ * localtime - convert a calendar time into broken down time.
+ * This assumes that tzset sets global variables for timezone
+ * information.
  */
 /* $Id$ */
 
@@ -10,7 +12,7 @@
  * Hence the adjustment of minutes when adding timezone and dst information.
  * This assumes that both must be expressable in multiples of a minute.
  * Furthermore, it is assumed that both fit into an integer when expressed as
- * minutes (this is about 22 days, so this should not cause any problems). 
+ * minutes (this is about 22 days, so this should not cause any problems).
  */
 struct tm*
 localtime(const time_t* timer)

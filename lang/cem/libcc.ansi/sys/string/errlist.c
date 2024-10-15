@@ -4,6 +4,9 @@
  */
 /* $Id$ */
 
+/* This file may need to be modified based on specific platform. The
+   default values here map to the ERRNO historical values. */
+
 #include <errno.h>
 
 const char* _sys_errlist[] = {
@@ -14,9 +17,9 @@ const char* _sys_errlist[] = {
 	"Interrupted system call",
 	"I/O error",
 	"No such device or address",
-	"Arg list too long",
+	"Argument list too long",
 	"Exec format error",
-	"Bad file number",
+	"Bad file descriptor",
 	"No children",
 	"No more processes",
 	"Not enough core",

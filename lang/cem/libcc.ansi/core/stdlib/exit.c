@@ -6,8 +6,9 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 #include "atexits.h"
+
+extern void _exit(int status);
 
 void (*__functab[NEXITS])(void);
 int __funccnt = 0;
