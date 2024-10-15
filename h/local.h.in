@@ -1,0 +1,4 @@
+#define VERSION 3
+#define ACKM "em22"
+#define BIGMACHINE 1
+#define SYS_5
