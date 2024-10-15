@@ -1,0 +1,78 @@
+cmake_minimum_required (VERSION 3.0)
+project(ack)
+
+
+if(NOT ACK_DATA_PATH)
+message(SEND_ERROR "ACK_DATA_PATH variable not defined")
+endif(NOT ACK_DATA_PATH)
+
+
+set(SRC_C
+	ack.h
+	data.c
+	data.h
+	dmach.h
+	files.c
+	grows.c
+	grows.h
+	list.c
+	list.h
+	main.c
+	rmach.c
+	run.c
+	scan.c
+	svars.c
+	trans.c
+	trans.h
+	util.c
+)
+
+set(GEN_SRC 
+ ${CMAKE_CURRENT_BINARY_DIR}/dmach.c 
+ ${CMAKE_CURRENT_BINARY_DIR}/intable.c
+)
+
+set(INCLUDE_DIRS
+ .
+ ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+
+add_executable(${PROJECT_NAME} ${SRC_C} ${GEN_SRC})
+target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIRS})
+target_compile_definitions(${PROJECT_NAME} PUBLIC NORCSID=1)
+target_link_libraries(${PROJECT_NAME} emheaders emh system)
+
+
+
+
+install(TARGETS ${PROJECT_NAME} 
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        PUBLIC_HEADER DESTINATION include
+)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/ack.1.X DESTINATION share/man/man1 RENAME ack.1)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/descr/fe DESTINATION ${ACK_DATA_PATH}/descr)
+
+
+###############################################
+# Generate other source files
+###############################################     
+
+add_executable(mktables mktables.c)
+add_custom_command(
+    OUTPUT ${GEN_SRC}
+    COMMAND mktables ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/descr/fe
+)
+
+
+###############################################
+# Generate and install documentation
+###############################################     
+
+if(${GENERATE_DOCS})
+include(${ACK_SRC_HOME}/first/gendoc.cmake)
+gendoc(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/ack.1.X man ack1)
+endif(${GENERATE_DOCS})
+
