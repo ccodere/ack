@@ -4,15 +4,15 @@
  * like DOS, CP/M, Arthur, etc. Also useful for RAM
  * images (but *not* ROM images, note) and, more
  * importantly, general test purposes.
- * 
+ *
  * Mostly pinched from the ARM cv (and then rewritten in
  * ANSI C). Which, according to the comment, was pinched
  * from m68k2; therefore I am merely continuing a time-
  * honoured tradition.
- * 
+ *
  * (I was 10 when the original for this was checked into
  * CVS...)
- * 
+ *
  * dtrg, 2006-10-17
  */
 
@@ -24,6 +24,7 @@
 #include <inttypes.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include "system.h"
 #include "out.h"
 
 #define ASSERT(x) switch (2) { case 0: case (x): ; }
@@ -31,7 +32,7 @@
 /*
  * Header and section table of ack object file.
  */
- 
+
 struct outhead outhead;
 struct outsect outsect[S_MAX];
 char* stringarea;
@@ -63,15 +64,15 @@ enum {
 void fatal(const char* s, ...)
 {
 	va_list ap;
-	
+
 	fprintf(stderr, "%s: ",program) ;
-	
+
 	va_start(ap, s);
 	vfprintf(stderr, s, ap);
 	va_end(ap);
-	
+
 	fprintf(stderr, "\n");
-	
+
 	if (outputfile)
 		unlink(outputfile);
 	exit(1);
@@ -84,25 +85,25 @@ long align(long a, long b)
 	a += b - 1;
 	return a - a % b;
 }
- 
+
 int follows(struct outsect* pa, struct outsect* pb)
 {
 	/* return 1 if pa follows pb */
- 
+
 	return (pa->os_base == align(pb->os_base+pb->os_size, pa->os_lign));
 }
 
 /* Copies the contents of a section from the input stream
  * to the output stream, zero filling any uninitialised
  * space. */
- 
+
 void emits(struct outsect* section, struct outsect* nextsect)
 {
 	char buffer[BUFSIZ];
 	uint32_t real_size;
 
 	/* Copy the actual data. */
-	
+
 	{
 		long n = section->os_flen;
 		while (n > 0)
@@ -122,7 +123,7 @@ void emits(struct outsect* section, struct outsect* nextsect)
 			    - section->os_base;
 
 	/* Zero fill any remaining space. */
-	
+
 	if (section->os_flen != real_size)
 	{
 		uint32_t n = real_size - section->os_flen;
@@ -161,7 +162,7 @@ void emitprefixfile(void)
 int rhead(FILE* f, struct outhead* head)
 {
 	char buf[SZ_HEAD], *c;
-	
+
 	if (fread(buf, sizeof(buf), 1, f) != 1)
 		return 0;
 
@@ -178,11 +179,11 @@ int rhead(FILE* f, struct outhead* head)
 }
 
 /* Read an ack.out section header. */
- 
+
 int rsect(FILE* f, struct outsect* sect)
 {
 	char buf[SZ_SECT], *c;
-	
+
 	if (fread(buf, sizeof(buf), 1, f) != 1)
 		return 0;
 
@@ -198,13 +199,13 @@ int rsect(FILE* f, struct outsect* sect)
 int main(int argc, char* argv[])
 {
 	/* General housecleaning and setup. */
-	
+
 	input = stdin;
 	output = stdout;
 	program = argv[0];
-	
+
 	/* Read in and process any flags. */
-	
+
 	while ((argc > 1) && (argv[1][0] == '-'))
 	{
 		switch (argv[1][1])
@@ -213,7 +214,7 @@ int main(int argc, char* argv[])
 				fprintf(stderr, "%s: Syntax: aslod [-h] <inputfile> <outputfile>\n",
 					program);
 				exit(0);
-				
+
 			case 'v':
 				verbose = true;
 				break;
@@ -228,37 +229,37 @@ int main(int argc, char* argv[])
 			syntaxerror:
 				fatal("syntax error --- try -h for help");
 		}
-		
+
 		argv++;
 		argc--;
 	}
 
 	/* Process the rest of the arguments. */
-	
+
 	switch (argc)
 	{
 		case 1: /* No parameters --- read from stdin, write to stdout. */
 			break;
-			
+
 		case 3: /* Both input and output files specified. */
 			output = fopen(argv[2], "wb");
 			if (!output)
 				fatal("unable to open output file.");
 			outputfile = argv[2];
 			/* fall through */
-			
+
 		case 2: /* Input file specified. */
 			input = fopen(argv[1], "rb");
 			if (!input)
 				fatal("unable to open input file.");
 			break;
-			
+
 		default:
 			goto syntaxerror;
 	}
 
 	/* Read and check the ack.out file header. */
-				
+
 	if (!rhead(input,&outhead))
 		fatal("failed to read file header.");
 	if (BADMAGIC(outhead))
@@ -269,9 +270,9 @@ int main(int argc, char* argv[])
 	      (outhead.oh_nsect == (NUM_SEGMENTS+1))))
 		fatal("the input file must have %d sections, not %ld.",
 			NUM_SEGMENTS, outhead.oh_nsect);
-			
+
 	/* Read in the section headers. */
-	
+
 	{
 		int i;
 		for (i=0; i<outhead.oh_nsect; i++)
@@ -297,7 +298,7 @@ int main(int argc, char* argv[])
 
 	/* Check for an optional end segment (which is otherwise
 	 * ignored). */
-	 
+
 	if (outhead.oh_nsect == (NUM_SEGMENTS+1))
 	{
 		if (!follows(&outsect[NUM_SEGMENTS], &outsect[BSS]))
@@ -307,7 +308,7 @@ int main(int argc, char* argv[])
 	}
 
 	/* And go! */
-	
+
 	if (prefixfile)
 		emitprefixfile();
 	emits(&outsect[TEXT], &outsect[ROM]);
@@ -322,7 +323,7 @@ int main(int argc, char* argv[])
 		chmod(outputfile, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
 	}
 	/* Summarise what we've done. */
-	
+
 	if (verbose)
 	{
 		uint32_t ss = 0;
@@ -337,7 +338,7 @@ int main(int argc, char* argv[])
 		ss += outsect[BSS].os_size;
 		printf("TOTAL = %08"PRIx32"\n", ss);
 	}
-	
+
 	return 0;
 }
 
